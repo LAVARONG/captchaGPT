@@ -37,6 +37,7 @@ captchaGPT-windows-amd64/
 ├── .env.example
 ├── smoke-test.ps1
 ├── sample.png
+├── math_sample.png
 ├── README.md
 └── QUICKSTART.md
 ```
@@ -48,6 +49,7 @@ captchaGPT-linux-amd64/
 ├── captchaGPT
 ├── .env.example
 ├── sample.png
+├── math_sample.png
 ├── README.md
 └── QUICKSTART.md
 ```
@@ -332,10 +334,10 @@ powershell -ExecutionPolicy Bypass -File .\smoke-test.ps1 -ImagePath .\sample.pn
 powershell -ExecutionPolicy Bypass -File .\smoke-test.ps1 -ImagePath .\sample.png -BaseUrl http://192.168.1.10:8080 -ApiKey your-user-key
 ```
 
-如果是算术验证码，比如 `20-18=?` 或 “九乘六等于?”，可以直接这样测：
+如果是算术验证码，比如 `20-18=?` 或 “九乘六等于?”，可以直接使用发布包里的 `math_sample.png` 来测：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\smoke-test.ps1 -ImagePath .\math-sample.png -ApiKey your-user-key -Task math
+powershell -ExecutionPolicy Bypass -File .\smoke-test.ps1 -ImagePath .\math_sample.png -ApiKey your-user-key -Task math
 ```
 
 ### cURL

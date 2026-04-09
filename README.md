@@ -205,6 +205,7 @@ captchaGPT-windows-amd64/
 ├── .env.example
 ├── smoke-test.ps1
 ├── sample.png
+├── math_sample.png
 ├── README.md
 └── QUICKSTART.md
 ```

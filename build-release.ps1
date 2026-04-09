@@ -41,7 +41,8 @@ $sharedFiles = @(
   ".env.example",
   "QUICKSTART.md",
   "README.md",
-  "sample.png"
+  "sample.png",
+  "math_sample.png"
 )
 
 foreach ($file in $sharedFiles) {
