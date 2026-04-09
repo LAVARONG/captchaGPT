@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"captchagpt/internal/api"
 	"captchagpt/internal/imageutil"
@@ -32,6 +33,7 @@ func New(modelName, tempDir string, maxImageBytes int64, client upstream.VisionC
 
 func (s *CaptchaService) Recognize(ctx context.Context, req api.CaptchaRequest) (api.CaptchaResponse, int) {
 	responseID := requestid.New("cap_")
+	startedAt := time.Now()
 
 	if strings.TrimSpace(req.ImageBase64) == "" {
 		return api.NewErrorResponse(responseID, "missing_image_base64", "image_base64 is required", req.ClientRequestID), http.StatusBadRequest
@@ -58,7 +60,7 @@ func (s *CaptchaService) Recognize(ctx context.Context, req api.CaptchaRequest) 
 		return api.NewErrorResponse(responseID, "empty_model_response", "upstream model returned an empty result", req.ClientRequestID), http.StatusBadGateway
 	}
 
-	return api.NewSuccessResponse(responseID, text), http.StatusOK
+	return api.NewSuccessResponse(responseID, text, time.Since(startedAt).Milliseconds()), http.StatusOK
 }
 
 func errorResponseForDecode(id, _model, reqID string, err error) (api.CaptchaResponse, int) {

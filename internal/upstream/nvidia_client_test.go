@@ -30,7 +30,7 @@ func TestNVIDIAClientRecognizeCaptcha(t *testing.T) {
 
 	client := NewNVIDIAClient(http.Client{}, server.URL, "nvidia-key")
 	result, status, err := client.RecognizeCaptcha(context.Background(), RecognizeRequest{
-		Model:     "google/gemma-4-31b-it",
+		Model:     "nvidia/nemotron-nano-12b-v2-vl",
 		Prompt:    "return only the captcha text",
 		ImagePath: tempFile,
 		MIMEType:  "image/png",

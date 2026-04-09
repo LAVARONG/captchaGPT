@@ -1,9 +1,14 @@
 package upstream
 
 type ChatCompletionRequest struct {
-	Model       string    `json:"model"`
-	Messages    []Message `json:"messages"`
-	Temperature float64   `json:"temperature,omitempty"`
+	Model              string             `json:"model"`
+	Messages           []Message          `json:"messages"`
+	Temperature        float64            `json:"temperature,omitempty"`
+	ChatTemplateKwargs ChatTemplateKwargs `json:"chat_template_kwargs,omitempty"`
+}
+
+type ChatTemplateKwargs struct {
+	EnableThinking bool `json:"enable_thinking"`
 }
 
 type Message struct {

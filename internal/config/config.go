@@ -17,6 +17,9 @@ type Config struct {
 	NVIDIAAPIKey     string
 	UserAPIKey       string
 	RequestTimeoutS  int
+	StartupSelfTest  bool
+	SelfTestTimeoutS int
+	EnableThinking   bool
 	RateLimitRPS     float64
 	RateLimitBurst   int
 	MaxImageBytes    int64
@@ -32,12 +35,15 @@ func Load() (Config, error) {
 	cfg := Config{
 		BaseDir:          baseDir,
 		Port:             getEnv("PORT", "8080"),
-		ModelName:        getEnv("MODEL_NAME", "google/gemma-4-31b-it"),
+		ModelName:        getEnv("MODEL_NAME", "nvidia/nemotron-nano-12b-v2-vl"),
 		UpstreamProvider: getEnv("UPSTREAM_PROVIDER", "nvidia"),
 		UpstreamBaseURL:  getEnv("UPSTREAM_BASE_URL", "https://integrate.api.nvidia.com/v1"),
 		NVIDIAAPIKey:     strings.TrimSpace(os.Getenv("NVIDIA_API_KEY")),
 		UserAPIKey:       strings.TrimSpace(os.Getenv("USER_API_KEY")),
 		RequestTimeoutS:  getEnvInt("REQUEST_TIMEOUT_SECONDS", 45),
+		StartupSelfTest:  getEnvBool("STARTUP_SELF_TEST", true),
+		SelfTestTimeoutS: getEnvInt("SELF_TEST_TIMEOUT_SECONDS", 30),
+		EnableThinking:   getEnvBool("ENABLE_THINKING", false),
 		RateLimitRPS:     getEnvFloat("RATE_LIMIT_RPS", 2),
 		RateLimitBurst:   getEnvInt("RATE_LIMIT_BURST", 5),
 		MaxImageBytes:    getEnvInt64("MAX_IMAGE_BYTES", 5*1024*1024),
@@ -62,6 +68,8 @@ func (c Config) Validate() error {
 		return errors.New("USER_API_KEY is required")
 	case c.RequestTimeoutS <= 0:
 		return errors.New("REQUEST_TIMEOUT_SECONDS must be > 0")
+	case c.SelfTestTimeoutS <= 0:
+		return errors.New("SELF_TEST_TIMEOUT_SECONDS must be > 0")
 	case c.RateLimitRPS <= 0:
 		return errors.New("RATE_LIMIT_RPS must be > 0")
 	case c.RateLimitBurst <= 0:
@@ -115,6 +123,21 @@ func getEnvFloat(key string, fallback float64) float64 {
 		return fallback
 	}
 	return v
+}
+
+func getEnvBool(key string, fallback bool) bool {
+	raw := strings.TrimSpace(strings.ToLower(os.Getenv(key)))
+	if raw == "" {
+		return fallback
+	}
+	switch raw {
+	case "1", "true", "yes", "on":
+		return true
+	case "0", "false", "no", "off":
+		return false
+	default:
+		return fallback
+	}
 }
 
 func loadDotEnv(path string) error {

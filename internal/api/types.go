@@ -3,6 +3,7 @@ package api
 import "time"
 
 type CaptchaHints struct {
+	Task          string   `json:"task,omitempty"`
 	Length        int      `json:"length,omitempty"`
 	Charset       string   `json:"charset,omitempty"`
 	AllowedChars  string   `json:"allowed_chars,omitempty"`
@@ -18,7 +19,8 @@ type CaptchaRequest struct {
 }
 
 type CaptchaResult struct {
-	Text string `json:"text,omitempty"`
+	Text       string `json:"text,omitempty"`
+	DurationMS int64  `json:"duration_ms,omitempty"`
 }
 
 type APIError struct {
@@ -36,13 +38,14 @@ type CaptchaResponse struct {
 	Error   *APIError      `json:"error,omitempty"`
 }
 
-func NewSuccessResponse(id, text string) CaptchaResponse {
+func NewSuccessResponse(id, text string, durationMS int64) CaptchaResponse {
 	return CaptchaResponse{
 		ID:      id,
 		Object:  "captcha.result",
 		Created: time.Now().Unix(),
 		Result: &CaptchaResult{
-			Text: text,
+			Text:       text,
+			DurationMS: durationMS,
 		},
 	}
 }

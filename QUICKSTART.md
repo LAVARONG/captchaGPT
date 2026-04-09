@@ -65,6 +65,12 @@ USER_API_KEY=你提供给调用方的服务密钥
 
 > **注意：** 不要将真实 `.env` 上传到版本控制。每个使用者都应该自行创建 `.env`。
 
+如果你想测试关闭 thinking 后的速度，可以在 `.env` 里加：
+
+```dotenv
+ENABLE_THINKING=false
+```
+
 ## 启动服务
 
 ### Windows
@@ -83,6 +89,19 @@ chmod +x ./captchaGPT
 ```
 
 启动成功后，服务默认监听 `http://127.0.0.1:8080`。
+
+默认情况下，程序启动后会自动测试一次上游大模型接口，发送简单问候语，并在日志中显示：
+
+- 是否请求成功
+- 模型回复内容
+- 响应耗时（毫秒）
+- 当前是否开启 thinking
+
+如果你不想启用启动自检，可以在 `.env` 中加入：
+
+```dotenv
+STARTUP_SELF_TEST=false
+```
 
 可通过健康检查确认服务状态：
 
@@ -135,6 +154,7 @@ POST /api/getCode
 | --- | --- | --- | --- |
 | `image_base64` | `string` | 是 | 验证码图片，支持纯 Base64 或 `data:image/...;base64,...` 格式 |
 | `captcha` | `object` | 否 | 验证码约束条件，提供越多识别越准确 |
+| `captcha.task` | `string` | 否 | 任务类型，`text` 表示普通字符验证码，`math` 表示算术验证码 |
 | `captcha.length` | `int` | 否 | 验证码字符数，如 `4` |
 | `captcha.charset` | `string` | 否 | 字符类型，见下方 [charset 取值说明](#charset-取值说明) |
 | `captcha.allowed_chars` | `string` | 否 | 允许的字符集合，可用于排除易混淆字符（如 `0/O`、`1/I`） |
@@ -144,6 +164,42 @@ POST /api/getCode
 | `client_request_id` | `string` | 否 | 客户端自定义请求 ID，便于日志追踪 |
 
 > **提示：** `captcha` 对象中的所有字段均为可选。不传时服务会使用通用提示词进行识别。传入约束条件可以显著提高识别准确率。
+
+### task 取值说明
+
+| 值 | 含义 | 返回内容 |
+| --- | --- | --- |
+| `text` | 普通字符验证码 | 直接返回识别出的字符 |
+| `math` | 算术验证码 | 返回最终计算结果的数字 |
+
+**算术验证码示例：**
+
+图片内容如果是：
+
+- `20 - 18 = ?`
+- `九乘六等于?`
+
+可以这样请求：
+
+```json
+{
+  "image_base64": "...",
+  "captcha": {
+    "task": "math"
+  }
+}
+```
+
+预期返回：
+
+```json
+{
+  "result": {
+    "text": "2",
+    "duration_ms": 1842
+  }
+}
+```
 
 ### charset 取值说明
 
@@ -190,7 +246,8 @@ POST /api/getCode
   "object": "captcha.result",
   "created": 1775606400,
   "result": {
-    "text": "7K3A"
+    "text": "7K3A",
+    "duration_ms": 1842
   }
 }
 ```
@@ -201,6 +258,7 @@ POST /api/getCode
 | `object` | `string` | 固定为 `captcha.result` |
 | `created` | `int64` | Unix 时间戳 |
 | `result.text` | `string` | 识别出的验证码文本 |
+| `result.duration_ms` | `int64` | 本次识别耗时，单位毫秒 |
 
 ### 错误返回
 
@@ -272,6 +330,12 @@ powershell -ExecutionPolicy Bypass -File .\smoke-test.ps1 -ImagePath .\sample.pn
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\smoke-test.ps1 -ImagePath .\sample.png -BaseUrl http://192.168.1.10:8080 -ApiKey your-user-key
+```
+
+如果是算术验证码，比如 `20-18=?` 或 “九乘六等于?”，可以直接这样测：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\smoke-test.ps1 -ImagePath .\math-sample.png -ApiKey your-user-key -Task math
 ```
 
 ### cURL

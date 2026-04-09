@@ -8,7 +8,7 @@
 
 ### 这是什么
 
-captchaGPT 是一个轻量的验证码识别后端服务。它接收验证码图片，调用多模态大模型（默认为 NVIDIA 托管的 `google/gemma-4-31b-it`，注册即可申请免费APIKEY）进行识别，并返回纯文本结果。
+captchaGPT 是一个轻量的验证码识别后端服务。它接收验证码图片，调用多模态大模型（默认为 NVIDIA 托管的 `nvidia/nemotron-nano-12b-v2-vl`，注册即可申请免费 API Key）进行识别，并返回纯文本结果。
 
 核心设计原则：
 
@@ -22,6 +22,8 @@ captchaGPT 是一个轻量的验证码识别后端服务。它接收验证码图
 
 - 数字/字母/混合验证码
 - 带少量噪点、扭曲、干扰线的静态图片验证码
+- 图片算术验证码，例如 `20-18=?`
+- 中文算术验证码，例如“九乘六等于?”
 
 不适合的类型：滑块验证码、点选验证码、拼图验证码、轨迹/行为验证类人机校验。
 
@@ -41,6 +43,9 @@ flowchart TD
 2. 服务端鉴权、限流、校验图片格式和大小
 3. 根据约束条件生成受限提示词，连同图片发给上游模型
 4. 模型返回后，服务端只提取验证码文本，返回统一 JSON
+5. 成功响应里会包含 `duration_ms`，表示本次识别耗时（毫秒）
+6. 如果请求指定 `captcha.task=math`，服务会返回最终计算结果数字
+7. 服务启动时默认会做一次上游模型自检，并打印回复内容与耗时
 
 ## 使用
 
@@ -100,6 +105,18 @@ go run ./cmd/api
 
 程序会优先读取当前工作目录下的 `.env`，如果不存在则回退到可执行文件所在目录。
 
+默认情况下，服务启动后会自动请求一次上游模型，发送简单问候语并打印：
+
+- 上游是否可用
+- 模型回复内容
+- 响应耗时（毫秒）
+
+如果你不想在启动时做这一步，可以在 `.env` 中设置：
+
+```dotenv
+STARTUP_SELF_TEST=false
+```
+
 健康检查：
 
 ```http
@@ -115,10 +132,13 @@ GET /healthz
 | `NVIDIA_API_KEY` | 是 | - | NVIDIA 平台 API Key |
 | `USER_API_KEY` | 是 | - | 提供给调用方的服务密钥 |
 | `PORT` | 否 | `8080` | 监听端口 |
-| `MODEL_NAME` | 否 | `google/gemma-4-31b-it` | 服务端固定模型名，必须支持图片输入 |
+| `MODEL_NAME` | 否 | `nvidia/nemotron-nano-12b-v2-vl` | 服务端固定模型名，必须支持图片输入 |
 | `UPSTREAM_PROVIDER` | 否 | `nvidia` | 上游模型提供方 |
 | `UPSTREAM_BASE_URL` | 否 | `https://integrate.api.nvidia.com/v1` | 上游接口基础地址 |
 | `REQUEST_TIMEOUT_SECONDS` | 否 | `45` | 单次请求超时（秒） |
+| `STARTUP_SELF_TEST` | 否 | `true` | 启动后是否自动做一次上游模型连通性测试 |
+| `SELF_TEST_TIMEOUT_SECONDS` | 否 | `30` | 启动自检超时（秒） |
+| `ENABLE_THINKING` | 否 | `false` | 上游请求中是否开启 `chat_template_kwargs.enable_thinking` |
 | `RATE_LIMIT_RPS` | 否 | `2` | 每秒允许请求数 |
 | `RATE_LIMIT_BURST` | 否 | `5` | 突发桶容量 |
 | `MAX_IMAGE_BYTES` | 否 | `5242880` | 单张图片最大字节数 |
@@ -130,6 +150,20 @@ GET /healthz
 ```dotenv
 NVIDIA_API_KEY=你的_NVIDIA_API_KEY
 USER_API_KEY=你发给调用方的服务密钥
+```
+
+如果你想比较速度和准确率，可以切换：
+
+```dotenv
+ENABLE_THINKING=false
+```
+
+服务会在上游请求里自动带上：
+
+```json
+"chat_template_kwargs": {
+  "enable_thinking": false
+}
 ```
 
 ### 自行编译
@@ -183,10 +217,19 @@ captchaGPT-windows-amd64/
 
 ### 模型选择
 
-默认推荐 `google/gemma-4-31b-it`：
+默认推荐 `nvidia/nemotron-nano-12b-v2-vl`（**推荐**）：
 
-- 支持图片理解，适合字符提取任务
-- 配合验证码长度/字符集约束时识别更稳定
+- 速度快，识别准确率高，综合表现最佳
+- 支持图片理解，适合验证码字符提取和算术验证码
+- 测试页面：https://build.nvidia.com/nvidia/nemotron-nano-12b-v2-vl
+
+其他测试过的模型：
+
+| 模型 | 速度 | 准确率 | 推荐度 |
+| --- | --- | --- | --- |
+| `nvidia/nemotron-nano-12b-v2-vl` | 快 | 高 | **推荐** |
+| `google/gemma-4-31b-it` | 慢 | 高 | 能用，不推荐 |
+| `google/gemma-3n-e4b-it` | 中等 | 一般 | 不推荐 |
 
 理论上，其他支持图片输入且接口兼容 OpenAI 风格的多模态模型 API 均可接入。
 

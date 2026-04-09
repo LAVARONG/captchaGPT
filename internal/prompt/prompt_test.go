@@ -22,3 +22,19 @@ func TestBuild(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildMathPrompt(t *testing.T) {
+	value := Build(api.CaptchaHints{
+		Task: "math",
+	})
+
+	for _, expected := range []string{
+		"solve the arithmetic captcha",
+		"Chinese numerals",
+		"return only the final answer as Arabic numerals",
+	} {
+		if !strings.Contains(value, expected) {
+			t.Fatalf("missing %q in math prompt", expected)
+		}
+	}
+}
